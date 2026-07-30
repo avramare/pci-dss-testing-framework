@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./dist",
+    "module": "commonjs",
+    "target": "ES2020",
+    "types": [],
+    "lib": ["ES2020","DOM"],
+    "strict": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@helpers/*": ["src/helpers/*"],
+      "@fixtures/*": ["src/fixtures/*"],
+      "@types-local/*": ["src/types/*"]
+    }
+  },
+  "include": ["src/**/*", "mock-server/**/*", "config/**/*"],
+  "exclude": ["node_modules", "dist", "reports"]
+}

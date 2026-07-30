@@ -1,0 +1,14 @@
+node_modules/
+
+dist/
+
+/playwright-report/
+/playwright/.cache/
+/playwright/.auth/
+/test-results/
+
+.env
+.env.local
+
+*.log
+Thumbs.ds
