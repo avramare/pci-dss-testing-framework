@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecurePay — PCI-DSS Test Checkout</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --surface2: #1c2535;
+      --border: #2a3547;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --error: #ef4444;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --card-bg: #141c2e;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .header .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+    }
+    .header .lock-icon { margin-right: 0.4rem; }
+    .header p {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-top: 0.3rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      margin-top: 0.6rem;
+    }
+
+    .checkout-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .amount-display {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.75rem;
+    }
+    .amount-display .merchant { color: var(--muted); font-size: 0.875rem; }
+    .amount-display .amount { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    label .required { color: var(--error); margin-left: 2px; }
+
+    input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+
+    /* PCI Req: autocomplete=off on sensitive fields */
+    #cardNumber { letter-spacing: 2px; font-family: monospace; }
+    #cvv { letter-spacing: 3px; font-family: monospace; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .card-brands {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .brand {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    .pay-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.9rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .pay-btn:hover { background: var(--accent-hover); }
+    .pay-btn:active { transform: scale(0.98); }
+    .pay-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .security-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Result panel */
+    #result {
+      display: none;
+      margin-top: 1.5rem;
+      padding: 1rem 1.25rem;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+    #result.success {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: var(--success);
+    }
+    #result.error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: var(--error);
+    }
+
+    .masked-pan-display {
+      font-family: monospace;
+      font-size: 1rem;
+      letter-spacing: 2px;
+      display: block;
+      margin-top: 0.25rem;
+      color: var(--text);
+    }
+
+    /* Test helper panel */
+    .test-helper {
+      background: rgba(59,130,246,0.05);
+      border: 1px dashed rgba(59,130,246,0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .test-helper strong { color: var(--accent); }
+    .test-helper code {
+      background: rgba(255,255,255,0.05);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo"><span class="lock-icon">🔐</span>SecurePay</div>
+    <p>Mock Payment Gateway — PCI-DSS Test Environment</p>
+    <div class="badge">⚡ Test Mode Active</div>
+  </div>
+
+  <div class="checkout-card">
+
+    <div class="section-title">Order Summary</div>
+    <div class="amount-display">
+      <span class="merchant">Demo Merchant Inc.</span>
+      <span class="amount">$99.00</span>
+    </div>
+
+    <div class="section-title">Payment Details</div>
+
+    <div class="card-brands">
+      <span class="brand">VISA</span>
+      <span class="brand">MC</span>
+      <span class="brand">AMEX</span>
+    </div>
+
+    <form id="paymentForm" novalidate>
+
+      <div class="form-group">
+        <label for="cardholderName">Cardholder Name <span class="required">*</span></label>
+        <input
+          type="text"
+          id="cardholderName"
+          name="cardholderName"
+          placeholder="John Doe"
+          autocomplete="cc-name"
+          data-testid="cardholder-name"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="cardNumber">Card Number <span class="required">*</span></label>
+        <input
+          type="text"
+          id="cardNumber"
+          name="cardNumber"
+          placeholder="4111 1111 1111 1111"
+          autocomplete="off"
+          inputmode="numeric"
+          maxlength="19"
+          data-testid="card-number"
+          required
+        />
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="expiry">Expiry Date <span class="required">*</span></label>
+          <input
+            type="text"
+            id="expiry"
+            name="expiry"
+            placeholder="MM/YY"
+            autocomplete="off"
+            maxlength="5"
+            data-testid="expiry-date"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="cvv">CVV <span class="required">*</span></label>
+          <input
+            type="password"
+            id="cvv"
+            name="cvv"
+            placeholder="•••"
+            autocomplete="off"
+            maxlength="4"
+            data-testid="cvv"
+            required
+          />
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <button type="submit" class="pay-btn" id="payBtn" data-testid="pay-button">
+        🔒 Pay $99.00
+      </button>
+
+    </form>
+
+    <div class="security-note">
+      🔒 256-bit TLS encrypted · PCI-DSS compliant
+    </div>
+
+    <div id="result" role="alert" aria-live="polite" data-testid="result-panel"></div>
+
+    <div class="test-helper">
+      <strong>🧪 Test Cards</strong><br/>
+      Visa: <code>4111 1111 1111 1111</code> · CVV: <code>123</code> · Exp: <code>12/27</code><br/>
+      MC: <code>5500 0055 5555 5559</code> · CVV: <code>456</code> · Exp: <code>03/28</code>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── Card number formatting ──────────────────────────────────────────────
+    document.getElementById('cardNumber').addEventListener('input', function(e) {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+      e.target.value = v.replace(/(\d{4})(?=\d)/g, '$1 ');
+    });
+
+    // ─── Expiry formatting ───────────────────────────────────────────────────
+    document.getElementById('expiry').addEventListener('input', function(e) {
+      let v = e.target.value.replace(/\D/g, '');
+      if (v.length >= 2) v = v.slice(0, 2) + '/' + v.slice(2, 4);
+      e.target.value = v;
+    });
+
+    // ─── Form submit ─────────────────────────────────────────────────────────
+    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('payBtn');
+      const result = document.getElementById('result');
+      btn.disabled = true;
+      btn.textContent = '⏳ Processing...';
+      result.style.display = 'none';
+
+      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+      const expiry = document.getElementById('expiry').value.split('/');
+      const cvv = document.getElementById('cvv').value;
+      const cardholderName = document.getElementById('cardholderName').value;
+
+      // Get auth token first (use merchant credentials)
+      let token = sessionStorage.getItem('pci_test_token');
+
+      if (!token) {
+        try {
+          const authRes = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: 'merchant@pcitest.local',
+              password: 'Merchant$ecure#2024'
+            })
+          });
+          const authData = await authRes.json();
+          if (authData.success) {
+            token = authData.data.accessToken;
+            sessionStorage.setItem('pci_test_token', token);
+          }
+        } catch(err) {
+          showResult('error', '❌ Could not authenticate. Is the mock server running?');
+          btn.disabled = false;
+          btn.innerHTML = '🔒 Pay $99.00';
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch('/api/payments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            amount: 99.00,
+            currency: 'USD',
+            merchantId: 'merchant_demo_001',
+            description: 'Demo purchase',
+            card: {
+              pan: cardNumber,
+              cvv: cvv,
+              expiryMonth: expiry[0],
+              expiryYear: '20' + (expiry[1] || '27'),
+              cardholderName: cardholderName,
+              brand: 'visa'
+            }
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const txn = data.data;
+          showResult('success',
+            `✅ Payment Approved\n` +
+            `Transaction ID: ${txn.transactionId}\n` +
+            `Card: ${txn.maskedPan}\n` +
+            `Amount: $${txn.amount} ${txn.currency}`
+          );
+          // Clear sensitive fields on success (PCI best practice)
+          document.getElementById('cvv').value = '';
+          document.getElementById('cardNumber').value = '';
+        } else {
+          showResult('error', `❌ ${data.error?.message || 'Payment failed'}`);
+        }
+      } catch(err) {
+        showResult('error', '❌ Network error — check mock server connection');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '🔒 Pay $99.00';
+    });
+
+    function showResult(type, message) {
+      const el = document.getElementById('result');
+      el.className = type;
+      el.style.display = 'block';
+      el.style.whiteSpace = 'pre-line';
+      el.textContent = message;
+    }
+  </script>
+
+</body>
+</html>
