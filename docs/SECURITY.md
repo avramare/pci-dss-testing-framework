@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If there are any vulnerabilities in **PROJECT_NAME**, don't hesitate to _report them_.
+If there are any vulnerabilities in **PCI-DSS v4.0 - Automation Testing Framework**, don't hesitate to _report them_.
 
 1. Use any of the [private contact addresses](https://github.com/avramare/pci-dss-testing-framework#support).
 2. Describe the vulnerability.
